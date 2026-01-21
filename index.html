@@ -18,7 +18,7 @@
     }
     h1 {
       font-size: 1.2rem;
-      margin: 0 0 2rem;
+      margin: 0 0 1.5rem;
       opacity: 0.6;
       letter-spacing: 0.3em;
     }
@@ -29,8 +29,13 @@
       margin: 0;
       user-select: none;
     }
+    #status {
+      font-size: 1.4rem;
+      margin: 1rem 0 1.5rem;
+      color: #555;
+    }
     .controls {
-      margin-top: 2.5rem;
+      margin-top: 2rem;
       display: flex;
       gap: 1.5rem;
     }
@@ -38,8 +43,8 @@
       background: transparent;
       border: 2px solid #333;
       color: #333;
-      padding: 0.8rem 1.8rem;
-      font-size: 1.1rem;
+      padding: 0.7rem 1.6rem;
+      font-size: 1.05rem;
       border-radius: 999px;
       cursor: pointer;
       transition: all 0.2s;
@@ -53,7 +58,7 @@
       color: white;
     }
     .mode-buttons {
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       display: flex;
       gap: 1rem;
       flex-wrap: wrap;
@@ -62,10 +67,10 @@
     .mode-btn {
       background: transparent;
       border: none;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       color: #777;
       cursor: pointer;
-      padding: 0.5rem 1.2rem;
+      padding: 0.5rem 1.1rem;
       border-radius: 999px;
       transition: all 0.2s;
     }
@@ -73,22 +78,38 @@
       color: #333;
       background: rgba(0,0,0,0.08);
     }
-    #custom-input {
+    #custom-panel {
       display: none;
-      margin-top: 1rem;
+      margin: 1.5rem 0;
       text-align: center;
+      background: rgba(0,0,0,0.03);
+      padding: 1.2rem 2rem;
+      border-radius: 12px;
     }
-    #custom-input input {
-      width: 80px;
+    .custom-row {
+      margin: 0.8rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.8rem;
+    }
+    .custom-row label {
+      font-size: 1.1rem;
+      min-width: 110px;
+      text-align: right;
+    }
+    input[type="number"] {
+      width: 90px;
       font-size: 1.2rem;
       padding: 0.5rem;
       text-align: center;
       border: 2px solid #ccc;
       border-radius: 8px;
     }
-    #custom-save {
-      margin-left: 0.8rem;
-      padding: 0.6rem 1.2rem;
+    #save-custom {
+      margin-top: 1.2rem;
+      padding: 0.7rem 2rem;
+      font-size: 1.1rem;
     }
   </style>
 </head>
@@ -97,18 +118,31 @@
   <h1>極簡番茄鐘</h1>
 
   <div class="mode-buttons">
-    <button class="mode-btn active" data-min="55">專注 55</button>
-    <button class="mode-btn" data-min="15">短休 15</button>
-    <button class="mode-btn" data-min="30">長休 30</button>
-    <button class="mode-btn" id="custom-btn">自訂</button>
+    <button class="mode-btn active" data-min="55" data-type="focus">專注 55</button>
+    <button class="mode-btn" data-min="15" data-type="short">短休 15</button>
+    <button class="mode-btn" data-min="30" data-type="long">長休 30</button>
+    <button class="mode-btn" id="custom-focus-btn">自訂專注</button>
+    <button class="mode-btn" id="custom-rest-btn">調整休息</button>
   </div>
 
-  <div id="custom-input">
-    <input type="number" id="custom-min" min="1" max="180" placeholder="分鐘" />
-    <button id="custom-save">儲存並使用</button>
+  <div id="custom-panel">
+    <div class="custom-row">
+      <label>專注時間：</label>
+      <input type="number" id="focus-min" min="1" max="180" value="55" /> 分鐘
+    </div>
+    <div class="custom-row">
+      <label>短休息：</label>
+      <input type="number" id="short-min" min="1" max="60" value="15" /> 分鐘
+    </div>
+    <div class="custom-row">
+      <label>長休息：</label>
+      <input type="number" id="long-min" min="1" max="120" value="30" /> 分鐘
+    </div>
+    <button id="save-custom">儲存設定</button>
   </div>
 
   <div id="time">55:00</div>
+  <div id="status">已完成 0/4 番茄</div>
 
   <div class="controls">
     <button id="start">開始</button>
@@ -119,26 +153,50 @@
     let timer;
     let timeLeft = 55 * 60;
     let isRunning = false;
-    let currentMode = '55'; // 預設為專注55分鐘
+    let currentMode = '55';
+    let currentType = 'focus';
+    let pomodoroCount = 0;
 
-    const timeDisplay = document.getElementById('time');
-    const startBtn = document.getElementById('start');
-    const resetBtn = document.getElementById('reset');
-    const modeBtns = document.querySelectorAll('.mode-btn:not(#custom-btn)');
-    const customBtn = document.getElementById('custom-btn');
-    const customInput = document.getElementById('custom-input');
-    const customMin = document.getElementById('custom-min');
-    const customSave = document.getElementById('custom-save');
+    // 自訂時間（會從 localStorage 載入）
+    let focusMin   = 55;
+    let shortMin   = 15;
+    let longMin    = 30;
 
-    // 從 localStorage 載入自訂時間（如果有）
-    const savedCustom = localStorage.getItem('pomodoroCustomMin');
-    let customValue = savedCustom ? parseInt(savedCustom) : 55;
+    const timeDisplay  = document.getElementById('time');
+    const statusDisplay = document.getElementById('status');
+    const startBtn     = document.getElementById('start');
+    const resetBtn     = document.getElementById('reset');
+    const modeBtns     = document.querySelectorAll('.mode-btn:not(#custom-focus-btn):not(#custom-rest-btn)');
+    const customFocusBtn = document.getElementById('custom-focus-btn');
+    const customRestBtn  = document.getElementById('custom-rest-btn');
+    const customPanel    = document.getElementById('custom-panel');
+    const focusInput     = document.getElementById('focus-min');
+    const shortInput     = document.getElementById('short-min');
+    const longInput      = document.getElementById('long-min');
+    const saveCustomBtn  = document.getElementById('save-custom');
+
+    // 從 localStorage 載入設定
+    const saved = localStorage.getItem('pomodoroSettings');
+    if (saved) {
+      const settings = JSON.parse(saved);
+      focusMin = settings.focus || 55;
+      shortMin = settings.short || 15;
+      longMin  = settings.long  || 30;
+    }
+
+    // 初始化顯示
+    focusInput.value = focusMin;
+    shortInput.value = shortMin;
+    longInput.value  = longMin;
+    customFocusBtn.textContent = `自訂專注 (${focusMin})`;
+    customRestBtn.textContent  = `調整休息 (${shortMin}/${longMin})`;
 
     function updateDisplay() {
       const min = Math.floor(timeLeft / 60);
       const sec = timeLeft % 60;
       timeDisplay.textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
       document.title = timeDisplay.textContent + ' | 番茄鐘';
+      statusDisplay.textContent = `已完成 ${pomodoroCount}/4 番茄`;
     }
 
     function startTimer() {
@@ -148,13 +206,29 @@
         isRunning = false;
       } else {
         timer = setInterval(() => {
-          timeLeft--;
-          updateDisplay();
+          if (timeLeft > 0) {
+            timeLeft--;
+            updateDisplay();
+          }
           if (timeLeft <= 0) {
             clearInterval(timer);
-            alert('時間到！休息一下吧～');
             isRunning = false;
             startBtn.textContent = '開始';
+
+            if (currentType === 'focus') {
+              pomodoroCount++;
+              if (pomodoroCount >= 3) {
+                alert('已完成 3 個番茄！進入長休息～');
+                switchToLongRest();
+                pomodoroCount = 0;
+              } else {
+                alert('番茄完成！短休息開始～');
+                switchToShortRest();
+              }
+            } else {
+              alert('休息結束！繼續專注吧～');
+              switchToFocus();
+            }
           }
         }, 1000);
         startBtn.textContent = '暫停';
@@ -162,67 +236,116 @@
       }
     }
 
+    function switchToFocus() {
+      currentMode = focusMin.toString();
+      currentType = 'focus';
+      timeLeft = focusMin * 60;
+      highlightMode('focus');
+      updateDisplay();
+    }
+
+    function switchToShortRest() {
+      currentMode = shortMin.toString();
+      currentType = 'short';
+      timeLeft = shortMin * 60;
+      highlightMode('short');
+      updateDisplay();
+    }
+
+    function switchToLongRest() {
+      currentMode = longMin.toString();
+      currentType = 'long';
+      timeLeft = longMin * 60;
+      highlightMode('long');
+      updateDisplay();
+    }
+
+    function highlightMode(type) {
+      modeBtns.forEach(btn => btn.classList.remove('active'));
+      customFocusBtn.classList.remove('active');
+      customRestBtn.classList.remove('active');
+      customPanel.style.display = 'none';
+
+      if (type === 'focus') modeBtns[0].classList.add('active');
+      else if (type === 'short') modeBtns[1].classList.add('active');
+      else if (type === 'long')  modeBtns[2].classList.add('active');
+    }
+
     function resetTimer() {
       clearInterval(timer);
-      timeLeft = parseInt(currentMode) * 60;
-      updateDisplay();
+      switchToFocus();
+      pomodoroCount = 0;
       isRunning = false;
       startBtn.textContent = '開始';
-    }
-
-    function changeMode(e) {
-      currentMode = e.target.dataset.min;
-      timeLeft = parseInt(currentMode) * 60;
       updateDisplay();
-      resetTimer();
-
-      modeBtns.forEach(btn => btn.classList.remove('active'));
-      customBtn.classList.remove('active');
-      e.target.classList.add('active');
-      customInput.style.display = 'none';
     }
 
-    function activateCustom() {
-      currentMode = customValue.toString();
-      timeLeft = customValue * 60;
-      updateDisplay();
-      resetTimer();
-
+    function showCustomPanel() {
       modeBtns.forEach(btn => btn.classList.remove('active'));
-      customBtn.classList.add('active');
-      customInput.style.display = 'block';
-      customMin.value = customValue;
+      customFocusBtn.classList.remove('active');
+      customRestBtn.classList.add('active');
+      customPanel.style.display = 'block';
+      focusInput.value = focusMin;
+      shortInput.value = shortMin;
+      longInput.value  = longMin;
     }
 
-    function saveCustom() {
-      const newMin = parseInt(customMin.value);
-      if (isNaN(newMin) || newMin < 1 || newMin > 180) {
-        alert('請輸入 1～180 分鐘之間的數字');
+    function saveCustomSettings() {
+      const f = parseInt(focusInput.value);
+      const s = parseInt(shortInput.value);
+      const l = parseInt(longInput.value);
+
+      if (isNaN(f) || f < 1 || f > 180 ||
+          isNaN(s) || s < 1 || s > 60  ||
+          isNaN(l) || l < 1 || l > 120) {
+        alert('專注：1-180 分\n短休：1-60 分\n長休：1-120 分');
         return;
       }
-      customValue = newMin;
-      localStorage.setItem('pomodoroCustomMin', customValue);
-      currentMode = customValue.toString();
-      timeLeft = customValue * 60;
-      updateDisplay();
-      resetTimer();
-      alert('自訂時間已儲存！');
+
+      focusMin = f;
+      shortMin = s;
+      longMin  = l;
+
+      localStorage.setItem('pomodoroSettings', JSON.stringify({
+        focus: focusMin,
+        short: shortMin,
+        long:  longMin
+      }));
+
+      customFocusBtn.textContent = `自訂專注 (${focusMin})`;
+      customRestBtn.textContent  = `調整休息 (${shortMin}/${longMin})`;
+
+      alert('設定已儲存');
+      customPanel.style.display = 'none';
+      resetTimer(); // 儲存後自動重置到新專注時間
     }
 
+    // 事件綁定
     startBtn.addEventListener('click', startTimer);
     resetBtn.addEventListener('click', resetTimer);
-    modeBtns.forEach(btn => btn.addEventListener('click', changeMode));
-    customBtn.addEventListener('click', activateCustom);
-    customSave.addEventListener('click', saveCustom);
 
-    // 初始載入：檢查是否有自訂值，否則用預設55
-    if (savedCustom) {
-      customValue = parseInt(savedCustom);
-      currentMode = customValue.toString();
-      timeLeft = customValue * 60;
-      customBtn.textContent = `自訂 ${customValue}`;
-    }
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentMode = btn.dataset.min;
+        currentType = btn.dataset.type;
+        timeLeft = parseInt(currentMode) * 60;
+        highlightMode(currentType);
+        resetTimer();
+      });
+    });
 
+    customFocusBtn.addEventListener('click', () => {
+      currentMode = focusMin.toString();
+      currentType = 'focus';
+      timeLeft = focusMin * 60;
+      highlightMode('focus');
+      resetTimer();
+    });
+
+    customRestBtn.addEventListener('click', showCustomPanel);
+    saveCustomBtn.addEventListener('click', saveCustomSettings);
+
+    // 初始載入
     updateDisplay();
   </script>
 
