@@ -55,7 +55,9 @@
     .mode-buttons {
       margin-bottom: 2rem;
       display: flex;
-      gap: 1.2rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     .mode-btn {
       background: transparent;
@@ -63,13 +65,30 @@
       font-size: 1.1rem;
       color: #777;
       cursor: pointer;
-      padding: 0.4rem 1rem;
+      padding: 0.5rem 1.2rem;
       border-radius: 999px;
       transition: all 0.2s;
     }
     .mode-btn.active {
       color: #333;
       background: rgba(0,0,0,0.08);
+    }
+    #custom-input {
+      display: none;
+      margin-top: 1rem;
+      text-align: center;
+    }
+    #custom-input input {
+      width: 80px;
+      font-size: 1.2rem;
+      padding: 0.5rem;
+      text-align: center;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+    }
+    #custom-save {
+      margin-left: 0.8rem;
+      padding: 0.6rem 1.2rem;
     }
   </style>
 </head>
@@ -78,12 +97,18 @@
   <h1>極簡番茄鐘</h1>
 
   <div class="mode-buttons">
-    <button class="mode-btn active" data-min="25">番茄</button>
-    <button class="mode-btn" data-min="5">短休</button>
-    <button class="mode-btn" data-min="15">長休</button>
+    <button class="mode-btn active" data-min="55">專注 55</button>
+    <button class="mode-btn" data-min="15">短休 15</button>
+    <button class="mode-btn" data-min="30">長休 30</button>
+    <button class="mode-btn" id="custom-btn">自訂</button>
   </div>
 
-  <div id="time">25:00</div>
+  <div id="custom-input">
+    <input type="number" id="custom-min" min="1" max="180" placeholder="分鐘" />
+    <button id="custom-save">儲存並使用</button>
+  </div>
+
+  <div id="time">55:00</div>
 
   <div class="controls">
     <button id="start">開始</button>
@@ -92,14 +117,22 @@
 
   <script>
     let timer;
-    let timeLeft = 25 * 60;
+    let timeLeft = 55 * 60;
     let isRunning = false;
-    let currentMode = '25';
+    let currentMode = '55'; // 預設為專注55分鐘
 
     const timeDisplay = document.getElementById('time');
     const startBtn = document.getElementById('start');
     const resetBtn = document.getElementById('reset');
-    const modeBtns = document.querySelectorAll('.mode-btn');
+    const modeBtns = document.querySelectorAll('.mode-btn:not(#custom-btn)');
+    const customBtn = document.getElementById('custom-btn');
+    const customInput = document.getElementById('custom-input');
+    const customMin = document.getElementById('custom-min');
+    const customSave = document.getElementById('custom-save');
+
+    // 從 localStorage 載入自訂時間（如果有）
+    const savedCustom = localStorage.getItem('pomodoroCustomMin');
+    let customValue = savedCustom ? parseInt(savedCustom) : 55;
 
     function updateDisplay() {
       const min = Math.floor(timeLeft / 60);
@@ -144,12 +177,51 @@
       resetTimer();
 
       modeBtns.forEach(btn => btn.classList.remove('active'));
+      customBtn.classList.remove('active');
       e.target.classList.add('active');
+      customInput.style.display = 'none';
+    }
+
+    function activateCustom() {
+      currentMode = customValue.toString();
+      timeLeft = customValue * 60;
+      updateDisplay();
+      resetTimer();
+
+      modeBtns.forEach(btn => btn.classList.remove('active'));
+      customBtn.classList.add('active');
+      customInput.style.display = 'block';
+      customMin.value = customValue;
+    }
+
+    function saveCustom() {
+      const newMin = parseInt(customMin.value);
+      if (isNaN(newMin) || newMin < 1 || newMin > 180) {
+        alert('請輸入 1～180 分鐘之間的數字');
+        return;
+      }
+      customValue = newMin;
+      localStorage.setItem('pomodoroCustomMin', customValue);
+      currentMode = customValue.toString();
+      timeLeft = customValue * 60;
+      updateDisplay();
+      resetTimer();
+      alert('自訂時間已儲存！');
     }
 
     startBtn.addEventListener('click', startTimer);
     resetBtn.addEventListener('click', resetTimer);
     modeBtns.forEach(btn => btn.addEventListener('click', changeMode));
+    customBtn.addEventListener('click', activateCustom);
+    customSave.addEventListener('click', saveCustom);
+
+    // 初始載入：檢查是否有自訂值，否則用預設55
+    if (savedCustom) {
+      customValue = parseInt(savedCustom);
+      currentMode = customValue.toString();
+      timeLeft = customValue * 60;
+      customBtn.textContent = `自訂 ${customValue}`;
+    }
 
     updateDisplay();
   </script>
