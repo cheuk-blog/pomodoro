@@ -154,9 +154,9 @@
 
   <script>
     let timer;
-    let timeLeft = 55 * 60;
+    let timeLeft;
     let isRunning = false;
-    let currentMode = '55';
+    let currentMode;
     let currentType = 'focus';
     let pomodoroCount = 0;
 
@@ -179,8 +179,8 @@
     const cycleInput    = document.getElementById('cycle-count');
     const saveCustomBtn = document.getElementById('save-custom');
 
-    // 從 localStorage 載入上次設定（如果存在）
-    function loadSettings() {
+    // 從 localStorage 載入並立即套用
+    function loadAndApplySettings() {
       const saved = localStorage.getItem('pomodoroSettings');
       if (saved) {
         try {
@@ -190,21 +190,32 @@
           longMin    = Number(settings.long)    || 30;
           cycleCount = Number(settings.cycle)   || 4;
 
-          // 更新輸入框顯示
           focusInput.value  = focusMin;
           shortInput.value  = shortMin;
           longInput.value   = longMin;
           cycleInput.value  = cycleCount;
 
-          // 更新狀態顯示的總數
+          // 立即套用到計時器
+          currentMode = focusMin.toString();
+          timeLeft = focusMin * 60;
+
+          // 更新狀態顯示
           statusDisplay.textContent = `已完成 0/${cycleCount} 番茄`;
         } catch (e) {
           console.error('localStorage 格式錯誤，使用預設值', e);
+          initDefault();
         }
+      } else {
+        initDefault();
       }
+      updateDisplay();
     }
 
-    // 儲存設定到 localStorage
+    function initDefault() {
+      currentMode = focusMin.toString();
+      timeLeft = focusMin * 60;
+    }
+
     function saveSettings() {
       const settings = {
         focus: focusMin,
@@ -332,13 +343,12 @@
       longMin    = l;
       cycleCount = c;
 
-      // 立即儲存
       saveSettings();
 
       alert(`設定已成功儲存！\n專注：${focusMin} 分\n短休：${shortMin} 分\n長休：${longMin} 分\n每 ${cycleCount} 個番茄長休`);
 
       customPanel.style.display = 'none';
-      resetTimer(); // 套用新設定並重置
+      resetTimer();
     }
 
     // 事件綁定
@@ -359,8 +369,7 @@
     saveCustomBtn.addEventListener('click', saveCustomSettings);
 
     // 頁面載入時執行
-    loadSettings();          // 先載入儲存的設定
-    updateDisplay();         // 更新顯示
+    loadAndApplySettings();  // 這行確保一開始就用儲存的值
   </script>
 
 </body>
