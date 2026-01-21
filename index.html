@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>極簡番茄鐘</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #f8f9fa;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #333;
+    }
+    h1 {
+      font-size: 1.2rem;
+      margin: 0 0 2rem;
+      opacity: 0.6;
+      letter-spacing: 0.3em;
+    }
+    #time {
+      font-size: 8rem;
+      font-weight: 300;
+      letter-spacing: -0.05em;
+      margin: 0;
+      user-select: none;
+    }
+    .controls {
+      margin-top: 2.5rem;
+      display: flex;
+      gap: 1.5rem;
+    }
+    button {
+      background: transparent;
+      border: 2px solid #333;
+      color: #333;
+      padding: 0.8rem 1.8rem;
+      font-size: 1.1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #333;
+      color: white;
+    }
+    button.active {
+      background: #333;
+      color: white;
+    }
+    .mode-buttons {
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 1.2rem;
+    }
+    .mode-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.1rem;
+      color: #777;
+      cursor: pointer;
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      transition: all 0.2s;
+    }
+    .mode-btn.active {
+      color: #333;
+      background: rgba(0,0,0,0.08);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>極簡番茄鐘</h1>
+
+  <div class="mode-buttons">
+    <button class="mode-btn active" data-min="25">番茄</button>
+    <button class="mode-btn" data-min="5">短休</button>
+    <button class="mode-btn" data-min="15">長休</button>
+  </div>
+
+  <div id="time">25:00</div>
+
+  <div class="controls">
+    <button id="start">開始</button>
+    <button id="reset">重置</button>
+  </div>
+
+  <script>
+    let timer;
+    let timeLeft = 25 * 60;
+    let isRunning = false;
+    let currentMode = '25';
+
+    const timeDisplay = document.getElementById('time');
+    const startBtn = document.getElementById('start');
+    const resetBtn = document.getElementById('reset');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    function updateDisplay() {
+      const min = Math.floor(timeLeft / 60);
+      const sec = timeLeft % 60;
+      timeDisplay.textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+      document.title = timeDisplay.textContent + ' | 番茄鐘';
+    }
+
+    function startTimer() {
+      if (isRunning) {
+        clearInterval(timer);
+        startBtn.textContent = '繼續';
+        isRunning = false;
+      } else {
+        timer = setInterval(() => {
+          timeLeft--;
+          updateDisplay();
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            alert('時間到！休息一下吧～');
+            isRunning = false;
+            startBtn.textContent = '開始';
+          }
+        }, 1000);
+        startBtn.textContent = '暫停';
+        isRunning = true;
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timer);
+      timeLeft = parseInt(currentMode) * 60;
+      updateDisplay();
+      isRunning = false;
+      startBtn.textContent = '開始';
+    }
+
+    function changeMode(e) {
+      currentMode = e.target.dataset.min;
+      timeLeft = parseInt(currentMode) * 60;
+      updateDisplay();
+      resetTimer();
+
+      modeBtns.forEach(btn => btn.classList.remove('active'));
+      e.target.classList.add('active');
+    }
+
+    startBtn.addEventListener('click', startTimer);
+    resetBtn.addEventListener('click', resetTimer);
+    modeBtns.forEach(btn => btn.addEventListener('click', changeMode));
+
+    updateDisplay();
+  </script>
+
+</body>
+</html>
