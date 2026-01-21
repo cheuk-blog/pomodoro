@@ -160,11 +160,11 @@
     let currentType = 'focus';
     let pomodoroCount = 0;
 
-    // 自訂參數（從 localStorage 載入）
+    // 自訂參數（預設值）
     let focusMin   = 55;
     let shortMin   = 15;
     let longMin    = 30;
-    let cycleCount = 4;  // 每幾個番茄後長休
+    let cycleCount = 4;
 
     const timeDisplay   = document.getElementById('time');
     const statusDisplay = document.getElementById('status');
@@ -179,22 +179,41 @@
     const cycleInput    = document.getElementById('cycle-count');
     const saveCustomBtn = document.getElementById('save-custom');
 
-    // 從 localStorage 載入設定
-    const saved = localStorage.getItem('pomodoroSettings');
-    if (saved) {
-      const settings = JSON.parse(saved);
-      focusMin   = settings.focus   || 55;
-      shortMin   = settings.short   || 15;
-      longMin    = settings.long    || 30;
-      cycleCount = settings.cycle   || 4;
+    // 從 localStorage 載入上次設定（如果存在）
+    function loadSettings() {
+      const saved = localStorage.getItem('pomodoroSettings');
+      if (saved) {
+        try {
+          const settings = JSON.parse(saved);
+          focusMin   = Number(settings.focus)   || 55;
+          shortMin   = Number(settings.short)   || 15;
+          longMin    = Number(settings.long)    || 30;
+          cycleCount = Number(settings.cycle)   || 4;
+
+          // 更新輸入框顯示
+          focusInput.value  = focusMin;
+          shortInput.value  = shortMin;
+          longInput.value   = longMin;
+          cycleInput.value  = cycleCount;
+
+          // 更新狀態顯示的總數
+          statusDisplay.textContent = `已完成 0/${cycleCount} 番茄`;
+        } catch (e) {
+          console.error('localStorage 格式錯誤，使用預設值', e);
+        }
+      }
     }
 
-    // 初始化輸入框與顯示
-    focusInput.value = focusMin;
-    shortInput.value = shortMin;
-    longInput.value  = longMin;
-    cycleInput.value = cycleCount;
-    statusDisplay.textContent = `已完成 0/${cycleCount} 番茄`;
+    // 儲存設定到 localStorage
+    function saveSettings() {
+      const settings = {
+        focus: focusMin,
+        short: shortMin,
+        long:  longMin,
+        cycle: cycleCount
+      };
+      localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+    }
 
     function updateDisplay() {
       const min = Math.floor(timeLeft / 60);
@@ -288,10 +307,10 @@
       modeBtns.forEach(btn => btn.classList.remove('active'));
       customBtn.classList.add('active');
       customPanel.style.display = 'block';
-      focusInput.value = focusMin;
-      shortInput.value = shortMin;
-      longInput.value  = longMin;
-      cycleInput.value = cycleCount;
+      focusInput.value  = focusMin;
+      shortInput.value  = shortMin;
+      longInput.value   = longMin;
+      cycleInput.value  = cycleCount;
     }
 
     function saveCustomSettings() {
@@ -313,16 +332,13 @@
       longMin    = l;
       cycleCount = c;
 
-      localStorage.setItem('pomodoroSettings', JSON.stringify({
-        focus: focusMin,
-        short: shortMin,
-        long:  longMin,
-        cycle: cycleCount
-      }));
+      // 立即儲存
+      saveSettings();
 
-      alert('設定已儲存');
+      alert(`設定已成功儲存！\n專注：${focusMin} 分\n短休：${shortMin} 分\n長休：${longMin} 分\n每 ${cycleCount} 個番茄長休`);
+
       customPanel.style.display = 'none';
-      resetTimer(); // 儲存後重置到新專注時間
+      resetTimer(); // 套用新設定並重置
     }
 
     // 事件綁定
@@ -342,8 +358,9 @@
     customBtn.addEventListener('click', showCustomPanel);
     saveCustomBtn.addEventListener('click', saveCustomSettings);
 
-    // 初始載入
-    updateDisplay();
+    // 頁面載入時執行
+    loadSettings();          // 先載入儲存的設定
+    updateDisplay();         // 更新顯示
   </script>
 
 </body>
