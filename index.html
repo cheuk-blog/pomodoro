@@ -40,6 +40,215 @@
 </center>
 
 <script>
+  let timer;
+  let timeLeft;
+  let isRunning = false;
+  let currentType = 'focus';
+  let pomodoroCount = 0;
+
+  // 這些值會從 localStorage 讀取
+  let focusMin   = 55;
+  let shortMin   = 15;
+  let longMin    = 30;
+  let cycleCount = 4;
+
+  let focusAlertEnabled = false;
+  let restAlertEnabled  = true;
+
+  const timeDisplay = document.getElementById('time');
+  const statusDisplay = document.getElementById('status');
+  const startBtn = document.getElementById('startBtn');
+
+  // 載入所有儲存的設定
+  function loadSettings() {
+    // 讀取時間設定
+    const savedFocus = localStorage.getItem('pomo_focus');
+    const savedShort = localStorage.getItem('pomo_short');
+    const savedLong  = localStorage.getItem('pomo_long');
+    const savedCycle = localStorage.getItem('pomo_cycle');
+
+    focusMin   = savedFocus   ? parseInt(savedFocus)   : 55;
+    shortMin   = savedShort   ? parseInt(savedShort)   : 15;
+    longMin    = savedLong    ? parseInt(savedLong)    : 30;
+    cycleCount = savedCycle   ? parseInt(savedCycle)   : 4;
+
+    // 讀取開關
+    const savedFocusAlert = localStorage.getItem('pomo_focus_alert');
+    const savedRestAlert  = localStorage.getItem('pomo_rest_alert');
+    focusAlertEnabled = savedFocusAlert === 'true';
+    restAlertEnabled  = savedRestAlert !== 'false';  // 預設 true
+
+    console.log('載入設定：', {focusMin, shortMin, longMin, cycleCount, focusAlertEnabled, restAlertEnabled});
+
+    // 同步到輸入框（如果有）
+    if (document.getElementById('focus')) {
+      document.getElementById('focus').value = focusMin;
+      document.getElementById('short').value = shortMin;
+      document.getElementById('long').value  = longMin;
+      document.getElementById('cycle').value = cycleCount;
+      document.getElementById('focusAlertToggle').checked = focusAlertEnabled;
+      document.getElementById('restAlertToggle').checked  = restAlertEnabled;
+    }
+
+    // 強制套用專注時間
+    timeLeft = focusMin * 60;
+    updateDisplay();
+  }
+
+  function saveToggles() {
+    focusAlertEnabled = document.getElementById('focusAlertToggle').checked;
+    restAlertEnabled  = document.getElementById('restAlertToggle').checked;
+    localStorage.setItem('pomo_focus_alert', focusAlertEnabled);
+    localStorage.setItem('pomo_rest_alert',  restAlertEnabled);
+    console.log('開關已儲存：', {focusAlertEnabled, restAlertEnabled});
+  }
+
+  function saveCustom() {
+    focusMin   = parseInt(document.getElementById('focus').value) || 55;
+    shortMin   = parseInt(document.getElementById('short').value) || 15;
+    longMin    = parseInt(document.getElementById('long').value)  || 30;
+    cycleCount = parseInt(document.getElementById('cycle').value) || 4;
+
+    if (focusMin < 1) focusMin = 55;
+    if (shortMin < 1) shortMin = 15;
+    if (longMin < 1) longMin = 30;
+    if (cycleCount < 1) cycleCount = 4;
+
+    // 真正儲存
+    localStorage.setItem('pomo_focus',   focusMin);
+    localStorage.setItem('pomo_short',   shortMin);
+    localStorage.setItem('pomo_long',    longMin);
+    localStorage.setItem('pomo_cycle',   cycleCount);
+
+    saveToggles();  // 順便存開關
+
+    console.log('全部設定已儲存：', {focusMin, shortMin, longMin, cycleCount});
+
+    document.getElementById('custom').style.display = 'none';
+    resetTimer();
+
+    alert('設定已儲存！\n專注：' + focusMin + '分  短休：' + shortMin + '分  長休：' + longMin + '分\n每' + cycleCount + '個長休\n專注提醒：' + (focusAlertEnabled?'開':'關') + '  休息提醒：' + (restAlertEnabled?'開':'關'));
+  }
+
+  function updateDisplay() {
+    let min = Math.floor(timeLeft / 60);
+    let sec = timeLeft % 60;
+    timeDisplay.innerText = min.toString().padStart(2,'0') + ':' + sec.toString().padStart(2,'0');
+    document.title = timeDisplay.innerText + ' - 番茄鐘';
+    statusDisplay.innerText = '已完成 ' + pomodoroCount + ' / ' + cycleCount + ' 番茄';
+  }
+
+  function toggleTimer() {
+    if (isRunning) {
+      clearInterval(timer);
+      startBtn.innerText = '繼續';
+      isRunning = false;
+    } else {
+      timer = setInterval(function() {
+        if (timeLeft > 0) {
+          timeLeft--;
+          updateDisplay();
+        }
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          isRunning = false;
+          startBtn.innerText = '開始';
+
+          if (currentType === 'focus') {
+            pomodoroCount++;
+            updateDisplay();
+            if (focusAlertEnabled) {
+              alert('番茄完成！已完成 ' + pomodoroCount + '/' + cycleCount + ' 個\n請開始休息');
+            }
+          } else if (currentType === 'short' || currentType === 'long') {
+            if (restAlertEnabled) {
+              alert((currentType === 'short' ? '短' : '長') + '休息時間結束，請開始下一個番茄');
+            }
+          }
+        }
+      }, 1000);
+      startBtn.innerText = '暫停';
+      isRunning = true;
+    }
+  }
+
+  function setMode(minutes, type) {
+    clearInterval(timer);
+    isRunning = false;
+    startBtn.innerText = '開始';
+    timeLeft = minutes * 60;
+    currentType = type;
+    updateDisplay();
+  }
+
+  function resetTimer() {
+    clearInterval(timer);
+    isRunning = false;
+    startBtn.innerText = '開始';
+    pomodoroCount = 0;
+    setMode(focusMin, 'focus');
+  }
+
+  function showCustom() {
+    document.getElementById('focus').value = focusMin;
+    document.getElementById('short').value = shortMin;
+    document.getElementById('long').value = longMin;
+    document.getElementById('cycle').value = cycleCount;
+    document.getElementById('focusAlertToggle').checked = focusAlertEnabled;
+    document.getElementById('restAlertToggle').checked = restAlertEnabled;
+    document.getElementById('custom').style.display = 'block';
+  }
+
+  // 頁面載入時執行
+  loadSettings();
+
+  // 確保開關的事件綁定（雖然有 onchange，但保險起見）
+  document.getElementById('focusAlertToggle').onchange = saveToggles;
+  document.getElementById('restAlertToggle').onchange = saveToggles;
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>番茄鐘</title>
+</head>
+<body>
+<center>
+<h1>極簡番茄鐘</h1>
+<p>
+  <button onclick="setMode(focusMin, 'focus')">專注</button>
+  <button onclick="setMode(shortMin, 'short')">短休</button>
+  <button onclick="setMode(longMin, 'long')">長休</button>
+  <button onclick="showCustom()">調整設定</button>
+</p>
+<div id="custom" style="display:none">
+  <p>專注時間: <input type="number" id="focus" value="55" size="5"> 分鐘</p>
+  <p>短休息: <input type="number" id="short" value="15" size="5"> 分鐘</p>
+  <p>長休息: <input type="number" id="long" value="30" size="5"> 分鐘</p>
+  <p>每幾個番茄長休: <input type="number" id="cycle" value="4" size="3"> 個</p>
+ 
+  <p>
+    <input type="checkbox" id="focusAlertToggle" onchange="saveToggles()">
+    <label for="focusAlertToggle">專注結束時彈出提醒（會搶回分頁焦點）</label>
+  </p>
+  <p>
+    <input type="checkbox" id="restAlertToggle" onchange="saveToggles()">
+    <label for="restAlertToggle">休息結束時彈出提醒（會搶回分頁焦點）</label>
+  </p>
+ 
+  <button onclick="saveCustom()">儲存設定</button>
+  <hr width="300">
+</div>
+<h2 id="time">55:00</h2>
+<p id="status">已完成 0 / 4 番茄</p>
+<p>
+  <button id="startBtn" onclick="toggleTimer()">開始</button>
+  <button onclick="resetTimer()">重置</button>
+</p>
+</center>
+
+<script>
   // 變數宣告
   let timer;
   let timeLeft = 55 * 60;
