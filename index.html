@@ -1,384 +1,194 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>極簡番茄鐘</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: #f8f9fa;
-      font-family: system-ui, -apple-system, sans-serif;
-      color: #333;
-    }
-    h1 {
-      font-size: 1.2rem;
-      margin: 0 0 1.5rem;
-      opacity: 0.6;
-      letter-spacing: 0.3em;
-    }
-    #time {
-      font-size: 8rem;
-      font-weight: 300;
-      letter-spacing: -0.05em;
-      margin: 0;
-      user-select: none;
-    }
-    #status {
-      font-size: 1.4rem;
-      margin: 1rem 0 1.5rem;
-      color: #555;
-    }
-    .controls {
-      margin-top: 2rem;
-      display: flex;
-      gap: 1.5rem;
-      align-items: center;
-    }
-    button {
-      background: transparent;
-      border: 2px solid #333;
-      color: #333;
-      padding: 0.7rem 1.6rem;
-      font-size: 1.05rem;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    button:hover {
-      background: #333;
-      color: white;
-    }
-    .mode-buttons {
-      margin-bottom: 1.5rem;
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .mode-btn {
-      background: transparent;
-      border: none;
-      font-size: 1.05rem;
-      color: #777;
-      cursor: pointer;
-      padding: 0.5rem 1.1rem;
-      border-radius: 999px;
-      transition: all 0.2s;
-    }
-    .mode-btn.active {
-      color: #333;
-      background: rgba(0,0,0,0.08);
-    }
-    #custom-panel {
-      display: none;
-      margin: 1.5rem 0;
-      text-align: center;
-      background: rgba(0,0,0,0.03);
-      padding: 1.5rem 2.5rem;
-      border-radius: 12px;
-    }
-    .custom-row {
-      margin: 1rem 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.8rem;
-    }
-    .custom-row label {
-      font-size: 1.1rem;
-      min-width: 140px;
-      text-align: right;
-    }
-    input[type="number"] {
-      width: 90px;
-      font-size: 1.2rem;
-      padding: 0.5rem;
-      text-align: center;
-      border: 2px solid #ccc;
-      border-radius: 8px;
-    }
-    #save-custom {
-      margin-top: 1.5rem;
-      padding: 0.7rem 2.5rem;
-      font-size: 1.1rem;
-    }
-
-    /* 新增 Toast 樣式 */
-    #toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.85);
-      color: white;
-      padding: 12px 28px;
-      border-radius: 8px;
-      font-size: 1.1rem;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-      pointer-events: none;
-      z-index: 9999;
-      white-space: nowrap;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    #toast.show {
-      opacity: 1;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>番茄鐘</title>
 </head>
 <body>
-  <h1>極簡番茄鐘</h1>
-  <div class="mode-buttons">
-    <button class="mode-btn active" data-min="55" data-type="focus">專注</button>
-    <button class="mode-btn" data-min="15" data-type="short">短休</button>
-    <button class="mode-btn" data-min="30" data-type="long">長休</button>
-    <button class="mode-btn" id="custom-btn">調整設定</button>
-  </div>
-  <div id="custom-panel">
-    <div class="custom-row">
-      <label>專注時間：</label>
-      <input type="number" id="focus-min" min="1" max="180" value="55" /> 分鐘
-    </div>
-    <div class="custom-row">
-      <label>短休息：</label>
-      <input type="number" id="short-min" min="1" max="60" value="15" /> 分鐘
-    </div>
-    <div class="custom-row">
-      <label>長休息：</label>
-      <input type="number" id="long-min" min="1" max="120" value="30" /> 分鐘
-    </div>
-    <div class="custom-row">
-      <label>每幾個番茄長休：</label>
-      <input type="number" id="cycle-count" min="1" max="10" value="4" /> 個
-    </div>
-    <button id="save-custom">儲存並套用</button>
-  </div>
-  <div id="time">55:00</div>
-  <div id="status">已完成 0/4 番茄</div>
-  <div class="controls">
-    <button id="start">開始</button>
-    <button id="reset">重置</button>
-  </div>
 
-  <!-- Toast 提示元素 -->
-  <div id="toast"></div>
+<center>
 
-  <script>
-    let timer;
-    let timeLeft;
-    let isRunning = false;
-    let currentMode;
-    let currentType = 'focus';
-    let pomodoroCount = 0;
+<h1>極簡番茄鐘</h1>
 
-    // 自訂參數（預設值）
-    let focusMin = 55;
-    let shortMin = 15;
-    let longMin = 30;
-    let cycleCount = 4;
+<p>
+  <button onclick="setMode(focusMin, 'focus')">專注</button>
+  <button onclick="setMode(shortMin, 'short')">短休</button>
+  <button onclick="setMode(longMin, 'long')">長休</button>
+  <button onclick="showCustom()">調整設定</button>
+</p>
 
-    const timeDisplay = document.getElementById('time');
-    const statusDisplay = document.getElementById('status');
-    const startBtn = document.getElementById('start');
-    const resetBtn = document.getElementById('reset');
-    const modeBtns = document.querySelectorAll('.mode-btn:not(#custom-btn)');
-    const customBtn = document.getElementById('custom-btn');
-    const customPanel = document.getElementById('custom-panel');
-    const focusInput = document.getElementById('focus-min');
-    const shortInput = document.getElementById('short-min');
-    const longInput = document.getElementById('long-min');
-    const cycleInput = document.getElementById('cycle-count');
-    const saveCustomBtn = document.getElementById('save-custom');
-    const toast = document.getElementById('toast');
+<div id="custom" style="display:none">
+  <p>專注時間: <input type="number" id="focus" value="55" size="5"> 分鐘</p>
+  <p>短休息: <input type="number" id="short" value="15" size="5"> 分鐘</p>
+  <p>長休息: <input type="number" id="long" value="30" size="5"> 分鐘</p>
+  <p>每幾個番茄長休: <input type="number" id="cycle" value="4" size="3"> 個</p>
+  
+  <!-- 兩個獨立的開關 -->
+  <p>
+    <input type="checkbox" id="focusAlertToggle" onchange="saveToggles()">
+    <label for="focusAlertToggle">專注結束時彈出提醒（會搶回分頁焦點）</label>
+  </p>
+  <p>
+    <input type="checkbox" id="restAlertToggle" onchange="saveToggles()">
+    <label for="restAlertToggle">休息結束時彈出提醒（會搶回分頁焦點）</label>
+  </p>
+  
+  <button onclick="saveCustom()">儲存設定</button>
+  <hr width="300">
+</div>
 
-    // 顯示 Toast 提示
-    function showToast(message, duration = 4000) {
-      toast.textContent = message;
-      toast.classList.add('show');
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, duration);
+<h2 id="time">55:00</h2>
+
+<p id="status">已完成 0 / 4 番茄</p>
+
+<p>
+  <button id="startBtn" onclick="toggleTimer()">開始</button>
+  <button onclick="resetTimer()">重置</button>
+</p>
+
+</center>
+
+<script>
+  let timer;
+  let timeLeft = 55 * 60;
+  let isRunning = false;
+  let currentType = 'focus';
+  let pomodoroCount = 0;
+
+  // 自訂參數
+  let focusMin = 55;
+  let shortMin = 15;
+  let longMin = 30;
+  let cycleCount = 4;
+
+  // 兩個獨立的開關（預設：專注關閉、休息開啟）
+  let focusAlertEnabled = false;
+  let restAlertEnabled = true;
+
+  const timeDisplay = document.getElementById('time');
+  const statusDisplay = document.getElementById('status');
+  const startBtn = document.getElementById('startBtn');
+
+  // 讀取儲存的開關狀態
+  function loadToggles() {
+    const savedFocus = localStorage.getItem('focusAlertEnabled');
+    const savedRest = localStorage.getItem('restAlertEnabled');
+
+    if (savedFocus !== null) {
+      focusAlertEnabled = (savedFocus === 'true');
+    }
+    if (savedRest !== null) {
+      restAlertEnabled = (savedRest === 'true');
     }
 
-    // 從 localStorage 載入設定
-    function loadAndApplySettings() {
-      const saved = localStorage.getItem('pomodoroSettings');
-      if (saved) {
-        try {
-          const settings = JSON.parse(saved);
-          focusMin = Number(settings.focus) || 55;
-          shortMin = Number(settings.short) || 15;
-          longMin = Number(settings.long) || 30;
-          cycleCount = Number(settings.cycle) || 4;
-          focusInput.value = focusMin;
-          shortInput.value = shortMin;
-          longInput.value = longMin;
-          cycleInput.value = cycleCount;
-        } catch (e) {
-          console.error('localStorage 格式錯誤，使用預設值', e);
-        }
-      }
-      currentMode = focusMin.toString();
-      timeLeft = focusMin * 60;
-      statusDisplay.textContent = `已完成 0/${cycleCount} 番茄`;
-      updateDisplay();
-    }
+    document.getElementById('focusAlertToggle').checked = focusAlertEnabled;
+    document.getElementById('restAlertToggle').checked = restAlertEnabled;
+  }
 
-    function saveSettings() {
-      const settings = {
-        focus: focusMin,
-        short: shortMin,
-        long: longMin,
-        cycle: cycleCount
-      };
-      localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
-    }
+  function saveToggles() {
+    focusAlertEnabled = document.getElementById('focusAlertToggle').checked;
+    restAlertEnabled = document.getElementById('restAlertToggle').checked;
 
-    function updateDisplay() {
-      const min = Math.floor(timeLeft / 60);
-      const sec = timeLeft % 60;
-      timeDisplay.textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-      document.title = timeDisplay.textContent + ' | 番茄鐘';
-      statusDisplay.textContent = `已完成 ${pomodoroCount}/${cycleCount} 番茄`;
-    }
+    localStorage.setItem('focusAlertEnabled', focusAlertEnabled);
+    localStorage.setItem('restAlertEnabled', restAlertEnabled);
+  }
 
-    function startTimer() {
-      if (isRunning) {
-        clearInterval(timer);
-        startBtn.textContent = '繼續';
-        isRunning = false;
-      } else {
-        timer = setInterval(() => {
-          if (timeLeft > 0) {
-            timeLeft--;
-            updateDisplay();
-          }
-          if (timeLeft <= 0) {
-            clearInterval(timer);
-            isRunning = false;
-            startBtn.textContent = '開始';
+  function updateDisplay() {
+    let min = Math.floor(timeLeft / 60);
+    let sec = timeLeft % 60;
+    timeDisplay.innerText = min.toString().padStart(2,'0') + ':' + sec.toString().padStart(2,'0');
+    document.title = timeDisplay.innerText + ' - 番茄鐘';
+    statusDisplay.innerText = '已完成 ' + pomodoroCount + ' / ' + cycleCount + ' 番茄';
+  }
 
-            if (currentType === 'focus') {
-              pomodoroCount++;
-              updateDisplay();
-              showToast(`番茄完成！已完成 ${pomodoroCount}/${cycleCount} 個`);
-            } else if (currentType === 'short') {
-              showToast('短休息時間結束');
-            } else if (currentType === 'long') {
-              showToast('長休息時間結束');
-            }
-            // 不再自動切換模式，停在 00:00
-          }
-        }, 1000);
-        startBtn.textContent = '暫停';
-        isRunning = true;
-      }
-    }
-
-    function switchToFocus() {
-      currentMode = focusMin.toString();
-      currentType = 'focus';
-      timeLeft = focusMin * 60;
-      highlightMode('focus');
-      updateDisplay();
-    }
-
-    function switchToShortRest() {
-      currentMode = shortMin.toString();
-      currentType = 'short';
-      timeLeft = shortMin * 60;
-      highlightMode('short');
-      updateDisplay();
-    }
-
-    function switchToLongRest() {
-      currentMode = longMin.toString();
-      currentType = 'long';
-      timeLeft = longMin * 60;
-      highlightMode('long');
-      updateDisplay();
-    }
-
-    function highlightMode(type) {
-      modeBtns.forEach(btn => btn.classList.remove('active'));
-      customBtn.classList.remove('active');
-      customPanel.style.display = 'none';
-      if (type === 'focus') modeBtns[0].classList.add('active');
-      else if (type === 'short') modeBtns[1].classList.add('active');
-      else if (type === 'long') modeBtns[2].classList.add('active');
-    }
-
-    function resetTimer() {
+  function toggleTimer() {
+    if (isRunning) {
       clearInterval(timer);
-      switchToFocus();
-      pomodoroCount = 0;
+      startBtn.innerText = '繼續';
       isRunning = false;
-      startBtn.textContent = '開始';
-      updateDisplay();
+    } else {
+      timer = setInterval(function() {
+        if (timeLeft > 0) {
+          timeLeft--;
+          updateDisplay();
+        }
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          isRunning = false;
+          startBtn.innerText = '開始';
+
+          if (currentType === 'focus') {
+            pomodoroCount++;
+            updateDisplay();
+            if (focusAlertEnabled) {
+              alert('番茄完成！已完成 ' + pomodoroCount + '/' + cycleCount + ' 個\n請開始休息');
+            } else {
+              console.log('番茄完成（無彈窗）！已完成 ' + pomodoroCount + '/' + cycleCount);
+            }
+          } else if (currentType === 'short' || currentType === 'long') {
+            if (restAlertEnabled) {
+              alert((currentType === 'short' ? '短' : '長') + '休息時間結束，請開始下一個番茄');
+            } else {
+              console.log((currentType === 'short' ? '短' : '長') + '休息結束（無彈窗）');
+            }
+          }
+        }
+      }, 1000);
+      startBtn.innerText = '暫停';
+      isRunning = true;
     }
+  }
 
-    function showCustomPanel() {
-      modeBtns.forEach(btn => btn.classList.remove('active'));
-      customBtn.classList.add('active');
-      customPanel.style.display = 'block';
-      focusInput.value = focusMin;
-      shortInput.value = shortMin;
-      longInput.value = longMin;
-      cycleInput.value = cycleCount;
-    }
+  function setMode(minutes, type) {
+    clearInterval(timer);
+    isRunning = false;
+    startBtn.innerText = '開始';
+    timeLeft = minutes * 60;
+    currentType = type;
+    updateDisplay();
+  }
 
-    function saveCustomSettings() {
-      const f = parseInt(focusInput.value);
-      const s = parseInt(shortInput.value);
-      const l = parseInt(longInput.value);
-      const c = parseInt(cycleInput.value);
+  function resetTimer() {
+    clearInterval(timer);
+    isRunning = false;
+    startBtn.innerText = '開始';
+    pomodoroCount = 0;
+    setMode(focusMin, 'focus');
+  }
 
-      if (isNaN(f) || f < 1 || f > 180 ||
-          isNaN(s) || s < 1 || s > 60 ||
-          isNaN(l) || l < 1 || l > 120 ||
-          isNaN(c) || c < 1 || c > 10) {
-        showToast('數值範圍錯誤，請檢查輸入');
-        return;
-      }
+  function showCustom() {
+    document.getElementById('focus').value = focusMin;
+    document.getElementById('short').value = shortMin;
+    document.getElementById('long').value = longMin;
+    document.getElementById('cycle').value = cycleCount;
+    document.getElementById('focusAlertToggle').checked = focusAlertEnabled;
+    document.getElementById('restAlertToggle').checked = restAlertEnabled;
+    document.getElementById('custom').style.display = 'block';
+  }
 
-      focusMin = f;
-      shortMin = s;
-      longMin = l;
-      cycleCount = c;
-      saveSettings();
-      showToast(`設定已儲存！專注 ${focusMin} 分 / 短休 ${shortMin} 分 / 長休 ${longMin} 分 / 每 ${cycleCount} 個長休`);
-      customPanel.style.display = 'none';
-      resetTimer();
-    }
+  function saveCustom() {
+    focusMin = parseInt(document.getElementById('focus').value) || 55;
+    shortMin = parseInt(document.getElementById('short').value) || 15;
+    longMin = parseInt(document.getElementById('long').value) || 30;
+    cycleCount = parseInt(document.getElementById('cycle').value) || 4;
 
-    // 事件綁定
-    startBtn.addEventListener('click', startTimer);
-    resetBtn.addEventListener('click', resetTimer);
+    if (focusMin < 1) focusMin = 55;
+    if (shortMin < 1) shortMin = 15;
+    if (longMin < 1) longMin = 30;
+    if (cycleCount < 1) cycleCount = 4;
 
-    modeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentMode = btn.dataset.min;
-        currentType = btn.dataset.type;
-        timeLeft = parseInt(currentMode) * 60;
-        highlightMode(currentType);
-        clearInterval(timer);
-        isRunning = false;
-        startBtn.textContent = '開始';
-        updateDisplay();
-      });
-    });
+    // 儲存兩個開關
+    saveToggles();
 
-    customBtn.addEventListener('click', showCustomPanel);
-    saveCustomBtn.addEventListener('click', saveCustomSettings);
+    document.getElementById('custom').style.display = 'none';
+    resetTimer();
+    alert('設定已更新\n專注時間：' + focusMin + ' 分\n專注提醒：' + (focusAlertEnabled ? '開啟' : '關閉') + '\n休息提醒：' + (restAlertEnabled ? '開啟' : '關閉'));
+  }
 
-    // 頁面載入
-    loadAndApplySettings();
-  </script>
+  // 頁面載入時初始化
+  loadToggles();
+  updateDisplay();
+</script>
+
 </body>
 </html>
