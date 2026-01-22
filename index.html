@@ -108,6 +108,28 @@
       padding: 0.7rem 2.5rem;
       font-size: 1.1rem;
     }
+
+    /* 新增 Toast 樣式 */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+      z-index: 9999;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    #toast.show {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -144,6 +166,9 @@
     <button id="reset">重置</button>
   </div>
 
+  <!-- Toast 提示元素 -->
+  <div id="toast"></div>
+
   <script>
     let timer;
     let timeLeft;
@@ -170,6 +195,16 @@
     const longInput = document.getElementById('long-min');
     const cycleInput = document.getElementById('cycle-count');
     const saveCustomBtn = document.getElementById('save-custom');
+    const toast = document.getElementById('toast');
+
+    // 顯示 Toast 提示
+    function showToast(message, duration = 4000) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, duration);
+    }
 
     // 從 localStorage 載入設定
     function loadAndApplySettings() {
@@ -189,7 +224,6 @@
           console.error('localStorage 格式錯誤，使用預設值', e);
         }
       }
-
       currentMode = focusMin.toString();
       timeLeft = focusMin * 60;
       statusDisplay.textContent = `已完成 0/${cycleCount} 番茄`;
@@ -225,7 +259,6 @@
             timeLeft--;
             updateDisplay();
           }
-
           if (timeLeft <= 0) {
             clearInterval(timer);
             isRunning = false;
@@ -234,13 +267,12 @@
             if (currentType === 'focus') {
               pomodoroCount++;
               updateDisplay();
-              alert(`番茄完成！已完成 ${pomodoroCount}/${cycleCount} 個`);
+              showToast(`番茄完成！已完成 ${pomodoroCount}/${cycleCount} 個`);
             } else if (currentType === 'short') {
-              alert('短休息時間結束');
+              showToast('短休息時間結束');
             } else if (currentType === 'long') {
-              alert('長休息時間結束');
+              showToast('長休息時間結束');
             }
-
             // 不再自動切換模式，停在 00:00
           }
         }, 1000);
@@ -311,7 +343,7 @@
           isNaN(s) || s < 1 || s > 60 ||
           isNaN(l) || l < 1 || l > 120 ||
           isNaN(c) || c < 1 || c > 10) {
-        alert('專注：1-180 分\n短休：1-60 分\n長休：1-120 分\n番茄數：1-10 個');
+        showToast('數值範圍錯誤，請檢查輸入');
         return;
       }
 
@@ -320,7 +352,7 @@
       longMin = l;
       cycleCount = c;
       saveSettings();
-      alert(`設定已儲存！\n專注：${focusMin} 分\n短休：${shortMin} 分\n長休：${longMin} 分\n每 ${cycleCount} 個番茄長休`);
+      showToast(`設定已儲存！專注 ${focusMin} 分 / 短休 ${shortMin} 分 / 長休 ${longMin} 分 / 每 ${cycleCount} 個長休`);
       customPanel.style.display = 'none';
       resetTimer();
     }
@@ -335,7 +367,6 @@
         currentType = btn.dataset.type;
         timeLeft = parseInt(currentMode) * 60;
         highlightMode(currentType);
-        // 手動切換模式時，重置計時但不重置番茄計數
         clearInterval(timer);
         isRunning = false;
         startBtn.textContent = '開始';
